@@ -127,8 +127,15 @@ public class VehicleRentalApp {
                         break;
                     }
 
-                    rentalSystem.rentVehicle(vRent, cRent, LocalDate.now(), rentAmount);
+                    boolean rented_vai = rentalSystem.rentVehicle(vRent, cRent, LocalDate.now(), rentAmount);
+
+                    if (rented_vai) {
+                        System.out.println("Rental successful.");
+                    } else {
+                        System.out.println("Could not rent: vehicle is not available.");
+                    }
                     break;
+                    
 
                 case 4:
                     rentalSystem.displayVehicles(Vehicle.VehicleStatus.Rented);
@@ -154,7 +161,13 @@ public class VehicleRentalApp {
                         break;
                     }
 
-                    rentalSystem.returnVehicle(vReturn, cReturn, LocalDate.now(), fees);
+                    boolean returned_vai = rentalSystem.returnVehicle(vReturn, cReturn, LocalDate.now(), fees);
+
+                    if (returned_vai) {
+                        System.out.println("Vehicle returned successfully.");
+                    } else {
+                        System.out.println("Could not return: vehicle is not currently rented.");
+                    }
                     break;
 
                 case 5:

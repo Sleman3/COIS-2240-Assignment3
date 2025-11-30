@@ -10,7 +10,6 @@ import java.util.List;
 public class RentalSystem {
 
     // ===== Singleton (Task 1.1) =====
-    // I added "_vai" to the instance name as requested.
     private static RentalSystem instance_vai;
 
     public static RentalSystem getInstance() {
@@ -34,21 +33,20 @@ public class RentalSystem {
         vehicles_vai = new ArrayList<>();
         customers_vai = new ArrayList<>();
         rentalHistory_vai = new RentalHistory();
-        loadData_vai();   // Task 1.3 – load data at startup
+        loadData_vai();   // load from files at startup
     }
 
     // ==============================
-    //  Task 1.4 – addVehicle/addCustomer
+    //  Task 1.4 – addVehicle/addCustomer (with duplicates)
     // ==============================
     public boolean addVehicle(Vehicle vehicle) {
-        // check duplicate license plate
         if (vehicle.getLicensePlate() != null &&
                 findVehicleByPlate(vehicle.getLicensePlate()) != null) {
             System.out.println("Vehicle with this plate already exists.");
             return false;
         }
         vehicles_vai.add(vehicle);
-        saveVehicle(vehicle);  // Task 1.2 – append to file
+        saveVehicle(vehicle);
         return true;
     }
 
@@ -58,35 +56,39 @@ public class RentalSystem {
             return false;
         }
         customers_vai.add(customer);
-        saveCustomer(customer);  // Task 1.2 – append to file
+        saveCustomer(customer);
         return true;
     }
 
     // ==============================
-    //  Rent / Return (Task 1 original)
+    //  Task 2.2 – rent/return now return boolean
     // ==============================
-    public void rentVehicle(Vehicle v, Customer c, LocalDate date, double amount) {
-        if (v.getStatus() == Vehicle.VehicleStatus.Available) {
-            v.setStatus(Vehicle.VehicleStatus.Rented);
-            RentalRecord record = new RentalRecord(v, c, date, amount, "RENT");
-            rentalHistory_vai.addRecord(record);
-            saveRecord(record);
-            System.out.println("Vehicle rented successfully.");
-        } else {
+    public boolean rentVehicle(Vehicle v, Customer c, LocalDate date, double amount) {
+        if (v.getStatus() != Vehicle.VehicleStatus.Available) {
             System.out.println("Vehicle is not available.");
+            return false;
         }
+
+        v.setStatus(Vehicle.VehicleStatus.Rented);
+        RentalRecord record = new RentalRecord(v, c, date, amount, "RENT");
+        rentalHistory_vai.addRecord(record);
+        saveRecord(record);
+        System.out.println("Vehicle rented successfully.");
+        return true;
     }
 
-    public void returnVehicle(Vehicle v, Customer c, LocalDate date, double fees) {
-        if (v.getStatus() == Vehicle.VehicleStatus.Rented) {
-            v.setStatus(Vehicle.VehicleStatus.Available);
-            RentalRecord record = new RentalRecord(v, c, date, fees, "RETURN");
-            rentalHistory_vai.addRecord(record);
-            saveRecord(record);
-            System.out.println("Vehicle returned successfully.");
-        } else {
+    public boolean returnVehicle(Vehicle v, Customer c, LocalDate date, double fees) {
+        if (v.getStatus() != Vehicle.VehicleStatus.Rented) {
             System.out.println("Vehicle is not currently rented.");
+            return false;
         }
+
+        v.setStatus(Vehicle.VehicleStatus.Available);
+        RentalRecord record = new RentalRecord(v, c, date, fees, "RETURN");
+        rentalHistory_vai.addRecord(record);
+        saveRecord(record);
+        System.out.println("Vehicle returned successfully.");
+        return true;
     }
 
     // ==============================
@@ -149,11 +151,10 @@ public class RentalSystem {
     }
 
     // ==============================
-    //  Task 1.2 – SAVE to files (append)
+    //  SAVE to files (append)
     // ==============================
     public void saveVehicle(Vehicle v) {
         try (PrintWriter out = new PrintWriter(new FileWriter(VEHICLES_FILE, true))) {
-            // simple format: type,plate,make,model,year,status
             String type;
             if (v instanceof Car) type = "Car";
             else if (v instanceof Minibus) type = "Minibus";
@@ -193,7 +194,7 @@ public class RentalSystem {
     }
 
     // ==============================
-    //  Task 1.3 – LOAD from files
+    //  LOAD from files
     // ==============================
     private void loadData_vai() {
         loadCustomers_vai();
@@ -241,7 +242,6 @@ public class RentalSystem {
 
                     Vehicle v = null;
 
-                    // we use simple default values for subclass-specific fields
                     if ("Car".equals(type)) {
                         v = new Car(make, model, year, 4);
                     } else if ("Minibus".equals(type)) {
@@ -251,7 +251,6 @@ public class RentalSystem {
                     } else if ("SportCar".equals(type)) {
                         v = new SportCar(make, model, year, 2, 300, true);
                     } else {
-                        // if unknown type, just skip
                         continue;
                     }
 
