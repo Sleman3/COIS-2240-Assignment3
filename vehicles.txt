@@ -1,1 +1,4 @@
 Car,456,Hhj,Kkk,1999
+Car,12,Mazda,3,2010,Available
+Minibus,123,Honda,Crv,2010,Available
+PickupTruck,1234,Ford,F150,2010,Available
