@@ -1,81 +1,77 @@
-import java.util.List;
-import java.util.ArrayList;
-import java.time.LocalDate;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.BufferedReader;
 import java.io.File;
-import java.util.Scanner;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RentalSystem {
 
+    // ===== Singleton (Task 1.1) =====
+    // I added "_vai" to the instance name as requested.
     private static RentalSystem instance_vai;
 
-    private List<Vehicle> vehicles;
-    private List<Customer> customers;
-    private RentalHistory rentalHistory;
-
-    private static final String VEHICLES_FILE_vai = "vehicles.txt";
-    private static final String CUSTOMERS_FILE_vai = "customers.txt";
-    private static final String RECORDS_FILE_vai = "rental_records.txt";
-
-    private RentalSystem() {
-        vehicles = new ArrayList<>();
-        customers = new ArrayList<>();
-        rentalHistory = new RentalHistory();
-        loadData();
-    }
-
-    public static RentalSystem getInstance_vai() {
+    public static RentalSystem getInstance() {
         if (instance_vai == null) {
             instance_vai = new RentalSystem();
         }
         return instance_vai;
     }
 
-    // -------------------------------
-    // ADD METHODS
-    // -------------------------------
-    public void addVehicle(Vehicle v) {
-        vehicles.add(v);
-        saveVehicle(v);
-        System.out.println("Vehicle added.");
+    // ===== Data =====
+    private List<Vehicle> vehicles_vai;
+    private List<Customer> customers_vai;
+    private RentalHistory rentalHistory_vai;
+
+    private static final String VEHICLES_FILE = "vehicles.txt";
+    private static final String CUSTOMERS_FILE = "customers.txt";
+    private static final String RECORDS_FILE = "rental_records.txt";
+
+    // ===== Constructor =====
+    private RentalSystem() {
+        vehicles_vai = new ArrayList<>();
+        customers_vai = new ArrayList<>();
+        rentalHistory_vai = new RentalHistory();
+        loadData_vai();   // Task 1.3 – load data at startup
     }
 
-    public void addCustomer(Customer c) {
-        customers.add(c);
-        saveCustomer(c);
-        System.out.println("Customer added.");
-    }
-
-    public Vehicle findVehicleByPlate(String plate) {
-        for (Vehicle v : vehicles) {
-            if (v.getLicensePlate() != null && v.getLicensePlate().equalsIgnoreCase(plate)) {
-                return v;
-            }
+    // ==============================
+    //  Task 1.4 – addVehicle/addCustomer
+    // ==============================
+    public boolean addVehicle(Vehicle vehicle) {
+        // check duplicate license plate
+        if (vehicle.getLicensePlate() != null &&
+                findVehicleByPlate(vehicle.getLicensePlate()) != null) {
+            System.out.println("Vehicle with this plate already exists.");
+            return false;
         }
-        return null;
+        vehicles_vai.add(vehicle);
+        saveVehicle(vehicle);  // Task 1.2 – append to file
+        return true;
     }
 
-    public Customer findCustomerById(int id) {
-        for (Customer c : customers) {
-            if (c.getCustomerId() == id) return c;
+    public boolean addCustomer(Customer customer) {
+        if (findCustomerById(customer.getCustomerId()) != null) {
+            System.out.println("Customer with this ID already exists.");
+            return false;
         }
-        return null;
+        customers_vai.add(customer);
+        saveCustomer(customer);  // Task 1.2 – append to file
+        return true;
     }
 
-    // -------------------------------
-    // RENT / RETURN METHODS
-    // -------------------------------
+    // ==============================
+    //  Rent / Return (Task 1 original)
+    // ==============================
     public void rentVehicle(Vehicle v, Customer c, LocalDate date, double amount) {
         if (v.getStatus() == Vehicle.VehicleStatus.Available) {
             v.setStatus(Vehicle.VehicleStatus.Rented);
-
             RentalRecord record = new RentalRecord(v, c, date, amount, "RENT");
-            rentalHistory.addRecord(record);
+            rentalHistory_vai.addRecord(record);
             saveRecord(record);
-
-            System.out.println("Vehicle rented to " + c.getCustomerName());
+            System.out.println("Vehicle rented successfully.");
         } else {
             System.out.println("Vehicle is not available.");
         }
@@ -84,95 +80,100 @@ public class RentalSystem {
     public void returnVehicle(Vehicle v, Customer c, LocalDate date, double fees) {
         if (v.getStatus() == Vehicle.VehicleStatus.Rented) {
             v.setStatus(Vehicle.VehicleStatus.Available);
-
             RentalRecord record = new RentalRecord(v, c, date, fees, "RETURN");
-            rentalHistory.addRecord(record);
+            rentalHistory_vai.addRecord(record);
             saveRecord(record);
-
-            System.out.println("Vehicle returned by " + c.getCustomerName());
+            System.out.println("Vehicle returned successfully.");
         } else {
-            System.out.println("Vehicle is not rented.");
+            System.out.println("Vehicle is not currently rented.");
         }
     }
 
-    // -------------------------------
-    // DISPLAY METHODS
-    // -------------------------------
-    public void displayVehicles(Vehicle.VehicleStatus status) {
-        System.out.println("\n=== VEHICLES ===");
-
-        boolean found = false;
-        for (Vehicle v : vehicles) {
-            if (status == null || v.getStatus() == status) {
-                System.out.println(v);
-                found = true;
+    // ==============================
+    //  Find helpers
+    // ==============================
+    public Vehicle findVehicleByPlate(String plate) {
+        for (Vehicle v : vehicles_vai) {
+            if (v.getLicensePlate() != null &&
+                    v.getLicensePlate().equalsIgnoreCase(plate)) {
+                return v;
             }
         }
+        return null;
+    }
 
-        if (!found) System.out.println("No vehicles found.");
+    public Customer findCustomerById(int id) {
+        for (Customer c : customers_vai) {
+            if (c.getCustomerId() == id) return c;
+        }
+        return null;
+    }
+
+    // ==============================
+    //  Display helpers
+    // ==============================
+    public void displayVehicles(Vehicle.VehicleStatus status) {
+        System.out.println("\n=== Vehicles (" + status + ") ===");
+        boolean any = false;
+        for (Vehicle v : vehicles_vai) {
+            if (v.getStatus() == status) {
+                System.out.println(v.getInfo());
+                any = true;
+            }
+        }
+        if (!any) {
+            System.out.println("No vehicles with that status.");
+        }
     }
 
     public void displayAllCustomers() {
-        System.out.println("\n=== CUSTOMERS ===");
-
-        if (customers.isEmpty()) {
+        System.out.println("\n=== Customers ===");
+        if (customers_vai.isEmpty()) {
             System.out.println("No customers.");
-            return;
+        } else {
+            for (Customer c : customers_vai) {
+                System.out.println(c);
+            }
         }
-
-        for (Customer c : customers) System.out.println(c);
     }
 
     public void displayRentalHistory() {
-        System.out.println("\n=== RENTAL HISTORY ===");
-
-        if (rentalHistory.getRentalHistory().isEmpty()) {
+        System.out.println("\n=== Rental History ===");
+        if (rentalHistory_vai.getRentalHistory().isEmpty()) {
             System.out.println("No rental records.");
-            return;
-        }
-
-        for (RentalRecord r : rentalHistory.getRentalHistory()) {
-            System.out.println(r);
+        } else {
+            for (RentalRecord r : rentalHistory_vai.getRentalHistory()) {
+                System.out.println(r);
+            }
         }
     }
 
-    // -------------------------------
-    // SAVE SECTION (Task 1.2)
-    // -------------------------------
+    // ==============================
+    //  Task 1.2 – SAVE to files (append)
+    // ==============================
     public void saveVehicle(Vehicle v) {
-        try (PrintWriter out = new PrintWriter(new FileWriter(VEHICLES_FILE_vai, true))) {
+        try (PrintWriter out = new PrintWriter(new FileWriter(VEHICLES_FILE, true))) {
+            // simple format: type,plate,make,model,year,status
+            String type;
+            if (v instanceof Car) type = "Car";
+            else if (v instanceof Minibus) type = "Minibus";
+            else if (v instanceof PickupTruck) type = "PickupTruck";
+            else if (v instanceof SportCar) type = "SportCar";
+            else type = "Vehicle";
 
-            if (v instanceof Car) {
-                Car c = (Car) v;
-                out.println("Car," + v.getLicensePlate() + "," + v.getMake() + "," + v.getModel() + "," +
-                            v.getYear() + "," + c.getNumSeats());
-            }
-
-            else if (v instanceof Minibus) {
-                Minibus m = (Minibus) v;
-                out.println("Minibus," + v.getLicensePlate() + "," + v.getMake() + "," + v.getModel() + "," +
-                            v.getYear() + "," + m.isAccessible());
-            }
-
-            else if (v instanceof PickupTruck) {
-                PickupTruck t = (PickupTruck) v;
-                out.println("PickupTruck," + v.getLicensePlate() + "," + v.getMake() + "," + v.getModel() + "," +
-                            v.getYear() + "," + t.getCargoSize() + "," + t.hasTrailer());
-            }
-
-            else if (v instanceof SportCar) {
-                SportCar s = (SportCar) v;
-                out.println("SportCar," + v.getLicensePlate() + "," + v.getMake() + "," + v.getModel() + "," +
-                            v.getYear() + "," + s.getNumSeats() + "," + s.horsepower + "," + s.hasTurbo);
-            }
-
+            out.println(type + "," +
+                    v.getLicensePlate() + "," +
+                    v.getMake() + "," +
+                    v.getModel() + "," +
+                    v.getYear() + "," +
+                    v.getStatus());
         } catch (Exception e) {
             System.out.println("Error saving vehicle: " + e.getMessage());
         }
     }
 
     public void saveCustomer(Customer c) {
-        try (PrintWriter out = new PrintWriter(new FileWriter(CUSTOMERS_FILE_vai, true))) {
+        try (PrintWriter out = new PrintWriter(new FileWriter(CUSTOMERS_FILE, true))) {
             out.println(c.getCustomerId() + "," + c.getCustomerName());
         } catch (Exception e) {
             System.out.println("Error saving customer: " + e.getMessage());
@@ -180,70 +181,86 @@ public class RentalSystem {
     }
 
     public void saveRecord(RentalRecord r) {
-        try (PrintWriter out = new PrintWriter(new FileWriter(RECORDS_FILE_vai, true))) {
+        try (PrintWriter out = new PrintWriter(new FileWriter(RECORDS_FILE, true))) {
             out.println(r.getVehicle().getLicensePlate() + "," +
-                        r.getCustomer().getCustomerId() + "," +
-                        r.getRecordDate() + "," +
-                        r.getTotalAmount() + "," +
-                        r.getRecordType());
+                    r.getCustomer().getCustomerId() + "," +
+                    r.getRecordDate() + "," +
+                    r.getTotalAmount() + "," +
+                    r.getRecordType());
         } catch (Exception e) {
             System.out.println("Error saving record: " + e.getMessage());
         }
     }
 
-    // -------------------------------
-    // LOAD SECTION (Task 1.3)
-    // -------------------------------
-    private void loadData() {
-        loadVehicles();
-        loadCustomers();
-        loadRecords();
+    // ==============================
+    //  Task 1.3 – LOAD from files
+    // ==============================
+    private void loadData_vai() {
+        loadCustomers_vai();
+        loadVehicles_vai();
+        loadRecords_vai();
     }
 
-    private void loadVehicles() {
-        File f = new File(VEHICLES_FILE_vai);
+    private void loadCustomers_vai() {
+        File f = new File(CUSTOMERS_FILE);
         if (!f.exists()) return;
 
-        try (Scanner sc = new Scanner(f)) {
-            while (sc.hasNextLine()) {
-                String[] p = sc.nextLine().split(",");
-
-                String type = p[0];
-                String plate = p[1];
-                String make = p[2];
-                String model = p[3];
-                int year = Integer.parseInt(p[4]);
-
-                Vehicle v = null;
-
-                switch (type) {
-                    case "Car":
-                        int seats = Integer.parseInt(p[5]);
-                        v = new Car(make, model, year, seats);
-                        break;
-
-                    case "Minibus":
-                        boolean acc = Boolean.parseBoolean(p[5]);
-                        v = new Minibus(make, model, year, acc);
-                        break;
-
-                    case "PickupTruck":
-                        double cargo = Double.parseDouble(p[5]);
-                        boolean trailer = Boolean.parseBoolean(p[6]);
-                        v = new PickupTruck(make, model, year, cargo, trailer);
-                        break;
-
-                    case "SportCar":
-                        int seatCount = Integer.parseInt(p[5]);
-                        int hp = Integer.parseInt(p[6]);
-                        boolean turbo = Boolean.parseBoolean(p[7]);
-                        v = new SportCar(make, model, year, seatCount, hp, turbo);
-                        break;
+        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] p = line.split(",");
+                if (p.length == 2) {
+                    int id = Integer.parseInt(p[0]);
+                    String name = p[1];
+                    customers_vai.add(new Customer(id, name));
                 }
+            }
+        } catch (Exception e) {
+            System.out.println("Error loading customers: " + e.getMessage());
+        }
+    }
 
-                if (v != null) {
+    private void loadVehicles_vai() {
+        File f = new File(VEHICLES_FILE);
+        if (!f.exists()) return;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                try {
+                    String[] p = line.split(",");
+                    if (p.length < 6) continue;
+
+                    String type = p[0];
+                    String plate = p[1];
+                    String make = p[2];
+                    String model = p[3];
+                    int year = Integer.parseInt(p[4]);
+                    Vehicle.VehicleStatus status =
+                            Vehicle.VehicleStatus.valueOf(p[5]);
+
+                    Vehicle v = null;
+
+                    // we use simple default values for subclass-specific fields
+                    if ("Car".equals(type)) {
+                        v = new Car(make, model, year, 4);
+                    } else if ("Minibus".equals(type)) {
+                        v = new Minibus(make, model, year, false);
+                    } else if ("PickupTruck".equals(type)) {
+                        v = new PickupTruck(make, model, year, 1.0, false);
+                    } else if ("SportCar".equals(type)) {
+                        v = new SportCar(make, model, year, 2, 300, true);
+                    } else {
+                        // if unknown type, just skip
+                        continue;
+                    }
+
                     v.setLicensePlate(plate);
-                    vehicles.add(v);
+                    v.setStatus(status);
+                    vehicles_vai.add(v);
+
+                } catch (Exception ignore) {
+                    // skip bad line
                 }
             }
         } catch (Exception e) {
@@ -251,45 +268,36 @@ public class RentalSystem {
         }
     }
 
-    private void loadCustomers() {
-        File f = new File(CUSTOMERS_FILE_vai);
+    private void loadRecords_vai() {
+        File f = new File(RECORDS_FILE);
         if (!f.exists()) return;
 
-        try (Scanner sc = new Scanner(f)) {
-            while (sc.hasNextLine()) {
-                String[] p = sc.nextLine().split(",");
-                int id = Integer.parseInt(p[0]);
-                String name = p[1];
-                customers.add(new Customer(id, name));
-            }
-        } catch (Exception e) {
-            System.out.println("Error loading customers: " + e.getMessage());
-        }
-    }
+        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                try {
+                    String[] p = line.split(",");
+                    if (p.length < 5) continue;
 
-    private void loadRecords() {
-        File f = new File(RECORDS_FILE_vai);
-        if (!f.exists()) return;
+                    String plate = p[0];
+                    int cid = Integer.parseInt(p[1]);
+                    LocalDate date = LocalDate.parse(p[2]);
+                    double amount = Double.parseDouble(p[3]);
+                    String type = p[4];
 
-        try (Scanner sc = new Scanner(f)) {
-            while (sc.hasNextLine()) {
-                String[] p = sc.nextLine().split(",");
+                    Vehicle v = findVehicleByPlate(plate);
+                    Customer c = findCustomerById(cid);
 
-                String plate = p[0];
-                int cid = Integer.parseInt(p[1]);
-                LocalDate date = LocalDate.parse(p[2]);
-                double amount = Double.parseDouble(p[3]);
-                String type = p[4];
-
-                Vehicle v = findVehicleByPlate(plate);
-                Customer c = findCustomerById(cid);
-
-                if (v != null && c != null) {
-                    rentalHistory.addRecord(new RentalRecord(v, c, date, amount, type));
+                    if (v != null && c != null) {
+                        rentalHistory_vai.addRecord(
+                                new RentalRecord(v, c, date, amount, type));
+                    }
+                } catch (Exception ignore) {
+                    // skip bad line
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error loading records: " + e.getMessage());
+            System.out.println("Error loading rental records: " + e.getMessage());
         }
     }
 }
