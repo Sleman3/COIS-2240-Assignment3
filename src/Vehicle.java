@@ -7,14 +7,14 @@ public abstract class Vehicle {
     private VehicleStatus status;
 
     public enum VehicleStatus {
-        Available, 
-        Held, 
-        Rented, 
-        UnderMaintenance, 
+        Available,
+        Held,
+        Rented,
+        UnderMaintenance,
         OutOfService
     }
 
-    // ---- MAIN CONSTRUCTOR (Task 1.5 Refactored with capitalize_vai) ----
+    // ---- Constructor (Task 1.5 refactored with helper) ----
     public Vehicle(String make, String model, int year) {
         this.make = capitalize_vai(make);
         this.model = capitalize_vai(model);
@@ -23,28 +23,53 @@ public abstract class Vehicle {
         this.licensePlate = null;
     }
 
-    // ---- Helper method added for Task 1.5 ----
+    // ---- Helper for formatting make/model (already added in Task 1.5) ----
     private String capitalize_vai(String input) {
         if (input == null) return null;
 
         String trimmed = input.trim();
         if (trimmed.isEmpty()) return null;
 
-        if (trimmed.length() == 1)
+        if (trimmed.length() == 1) {
             return trimmed.toUpperCase();
+        }
 
         return trimmed.substring(0, 1).toUpperCase() +
                trimmed.substring(1).toLowerCase();
     }
 
-    // ---- GETTERS & SETTERS ----
+    // ---- NEW: plate validation (Task 2.1) ----
+    // Returns true only if:
+    // - not null
+    // - not empty
+    // - exactly 3 letters followed by 3 digits (e.g., AAA100)
+    private boolean isValidPlate(String plate) {
+        if (plate == null) return false;
+
+        String trimmed = plate.trim();
+        if (trimmed.isEmpty()) return false;
+
+        // normalize to upper-case
+        String upper = trimmed.toUpperCase();
+
+        // 3 letters + 3 digits
+        return upper.matches("[A-Z]{3}[0-9]{3}");
+    }
+
+    // ---- SETTERS / GETTERS ----
 
     public String getLicensePlate() {
         return licensePlate;
     }
 
+    // Task 2.1: now uses isValidPlate and throws IllegalArgumentException if invalid
     public void setLicensePlate(String plate) {
-        this.licensePlate = plate;
+        if (!isValidPlate(plate)) {
+            throw new IllegalArgumentException(
+                "Invalid license plate format. Expected 3 letters followed by 3 digits (e.g., AAA100)."
+            );
+        }
+        this.licensePlate = plate.trim().toUpperCase();
     }
 
     public String getMake() {
@@ -67,12 +92,12 @@ public abstract class Vehicle {
         this.status = status;
     }
 
-    // ---- Shared info for all vehicles ----
+    // ---- Common info string for printing ----
     public String getInfo() {
-        return "[" + licensePlate + "] " + make + " " + model + " (" + year + ")";
+        return "[" + licensePlate + "] " + make + " " + model + " (" + year + ") - " + status;
     }
 
-    // ---- ABSTRACT RENT/RETURN METHODS ----
+    // ---- Abstract rent / return ----
     public abstract void rentVehicle();
     public abstract void returnVehicle();
 }
