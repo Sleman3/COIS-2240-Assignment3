@@ -149,6 +149,19 @@ public class RentalSystem {
             }
         }
     }
+    // ===== Simple getters for GUI (Task 3) =====
+    public java.util.List<Vehicle> getAllVehicles_vai() {
+        return new java.util.ArrayList<>(vehicles_vai);
+    }
+
+    public java.util.List<Customer> getAllCustomers_vai() {
+        return new java.util.ArrayList<>(customers_vai);
+    }
+
+    public java.util.List<RentalRecord> getAllRecords_vai() {
+        return new java.util.ArrayList<>(rentalHistory_vai.getRentalHistory());
+    }
+
 
     // ==============================
     //  SAVE to files (append)
